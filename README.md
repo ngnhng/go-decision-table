@@ -2,6 +2,11 @@
 
 The goal is to provide an idiomatic Go API for constructing in-memory decision tables and evaluating rules against input maps.
 
+## DSL
+
+- [JSON DSL Spec](https://github.com/ngnhng/go-decision-table/wiki/JSON-DSL-Specification-Draft)
+- TODO: Excel Spec
+
 ## Features
 
 - Column metadata that matches the JSON DSL (`CONDITION`, `CONCLUSION`, `METADATA`) and supported data types (`STRING`, `INTEGER`, `DECIMAL`, `BOOLEAN`, `DATE`, `DATETIME`, `LIST_*`).
