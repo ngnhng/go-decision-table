@@ -68,10 +68,21 @@ func main() {
 
 ## How It Works
 
-- **Column metadata**: Each condition column declares a data type and operator semantics. Values are sanitized (including JSON numbers, Excel strings, and precise `DECIMAL` values) before they are stored in the table.
-- **Row preparation**: When you call `AddRow`, evaluation cells are parsed once (operators are resolved, `IN` lists are deduped) and return cells are coerced into their target type. Invalid columns or duplicate rule IDs fail fast.
-- **Evaluation loop**: `Evaluate` walks the ordered rows, invoking `evaluateCell` for every condition cell until a mismatch is found. Depending on `MatchPolicy`, it stops at the first success or accumulates every match.
-- **Return materialization**: Matching rows are converted into `MatchedRow` structs with cloned values so the caller can mutate the results without affecting the table. If no rows match, `NoMatchPolicy` decides whether to emit the configured default row or nothing at all.
+- **Describe your columns**: List every condition and conclusion column with its semantic type so the table knows how to compare and return values.
+- **Load the rules**: Each row pairs operators (`GT`, `IN`, `ANY_CONTAINED_IN`, …) with values. When rows are added they’re validated once, so typos or unsupported data types fail fast instead of at runtime.
+- **Evaluate in order**: `Evaluate` walks the rows top-to-bottom, stopping at the first match, collecting all matches, or enforcing uniqueness depending on the selected match policy.
+- **Handle defaults**: No-match policies decide whether to surface a custom default row, return a caller-provided fallback, or error out when nothing applies.
+
+### Example flow
+
+Imagine the credit-policy table from the docs:
+
+1. Applicant (810 score, 0.27 DTI, VIP) satisfies the premium rule (`>=780`, `<0.30`, category in `["PREMIUM","VIP"]`) and immediately receives approval at 3.5%.
+2. Another applicant (735 score, 0.33 DTI) skips the premium rule but matches the “good” row, so `Evaluate` returns approval at 4.8%.
+3. Someone with 0.55 DTI hits the high-risk rule and is rejected.
+4. Everyone else falls through to the default-rejection row defined in the table.
+
+That same JSON/Excel definition can be loaded directly, or you can recreate it programmatically as shown in the quick start.
 
 ## Loading from Files
 
