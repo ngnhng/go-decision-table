@@ -2,20 +2,109 @@
 
 The goal is to provide an idiomatic Go API for constructing in-memory decision tables and evaluating rules against input maps.
 
-## DSL
+## Spec
 
 - [JSON DSL Spec](https://github.com/ngnhng/go-decision-table/wiki/JSON-DSL-Specification-Draft)
 - TODO: Excel Spec
 
-## Features
-
-- Column metadata that matches the JSON DSL (`CONDITION`, `CONCLUSION`, `METADATA`) and supported data types (`STRING`, `INTEGER`, `DECIMAL`, `BOOLEAN`, `DATE`, `DATETIME`, `LIST_*`).
-- Rich set of operators (`equal`, `greaterThan`, `in`, `anyContained`, `containsAll`, `allEqual`, …) with strict type coercion.
-- Match policies (`FIRST`, `ALL`, `UNIQUE`) and no-match policies (`RETURN_DEFAULT`, `THROW_ERROR`).
-- Strict row validation that sanitizes rule definitions before evaluation.
-- JSON loader for the new DSL and an Excel loader that mirrors the same semantics.
-
 ## Quick Start
+
+### JSON DSL
+
+```json
+{
+  "decisionTable": {
+    "name": "loanEligibilityCheck",
+    "description": "Determines loan eligibility and interest rate based on credit score and debt-to-income ratio.",
+    "policies": {
+      "matchPolicy": "FIRST",
+      "noMatchPolicy": "RETURN_DEFAULT"
+    },
+    "columns": [
+      {
+        "name": "creditScore",
+        "label": "Credit Score",
+        "type": "CONDITION",
+        "dataType": "INTEGER"
+      },
+      {
+        "name": "dtiRatio",
+        "label": "Debt-to-Income Ratio",
+        "type": "CONDITION",
+        "dataType": "DECIMAL"
+      },
+      {
+        "name": "customerCategory",
+        "label": "Customer Category",
+        "type": "CONDITION",
+        "dataType": "STRING"
+      },
+      {
+        "name": "isApproved",
+        "label": "Is Approved?",
+        "type": "CONCLUSION",
+        "dataType": "BOOLEAN"
+      },
+      {
+        "name": "interestRate",
+        "label": "Interest Rate (%)",
+        "type": "CONCLUSION",
+        "dataType": "DECIMAL"
+      },
+      {
+        "name": "ruleId",
+        "label": "Matched Rule ID",
+        "type": "METADATA",
+        "dataType": "STRING"
+      }
+    ],
+    "rules": [
+      {
+        "id": "rule-001-premium",
+        "description": "Excellent credit score and low DTI for premium customers.",
+        "when": [
+          { "operator": "greaterThanOrEqual", "value": 780 },
+          { "operator": "lessThan", "value": 0.3 },
+          { "operator": "in", "value": ["PREMIUM", "VIP"] }
+        ],
+        "then": [true, 3.5, "rule-001-premium"]
+      },
+      {
+        "id": "rule-002-good",
+        "description": "Good credit score and acceptable DTI.",
+        "when": [
+          { "operator": "greaterThanOrEqual", "value": 700 },
+          { "operator": "lessThanOrEqual", "value": 0.4 },
+          {}
+        ],
+        "then": [true, 4.8, "rule-002-good"]
+      },
+      {
+        "id": "rule-003-fair",
+        "description": "Fair credit score requires a very low DTI.",
+        "when": [
+          { "operator": "greaterThanOrEqual", "value": 640 },
+          { "operator": "lessThan", "value": 0.35 },
+          {}
+        ],
+        "then": [true, 6.2, "rule-003-fair"]
+      },
+      {
+        "id": "rule-004-high-risk",
+        "description": "High DTI leads to rejection.",
+        "when": [{}, { "operator": "greaterThanOrEqual", "value": 0.5 }, {}],
+        "then": [false, null, "rule-004-high-risk"]
+      }
+    ],
+    "defaultRule": {
+      "description": "Default rejection for all other cases.",
+      "then": [false, null, "default-rejection"]
+    }
+  }
+}
+```
+
+### Code
 
 ```go
 package main
@@ -99,4 +188,8 @@ Run the unit tests with:
 
 ```bash
 go test ./...
+```
+
+```
+
 ```
